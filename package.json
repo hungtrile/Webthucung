@@ -1,0 +1,34 @@
+{
+  "name": "pet-phet-pet-care-website",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc --noEmit && vite build",
+    "build:live-server": "npm run typecheck && vite build --outDir live-server",
+    "preview": "vite preview --host 0.0.0.0",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test src/utils/bookingEngine.test.ts scripts/store-smoke.test.ts",
+    "build:github": "npm run build"
+  },
+  "dependencies": {
+    "lucide-react": "^0.546.0",
+    "react": "^19.0.1",
+    "react-dom": "^19.0.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^22.14.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.8.3",
+    "tsx": "^4.21.0",
+    "vite": "^8.3.0"
+  },
+  "allowScripts": {
+    "esbuild": true
+  }
+}
