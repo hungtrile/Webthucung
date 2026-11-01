@@ -97,8 +97,8 @@ const SEED_SERVICES: Service[] = [
     species_supported: ['Chó', 'Mèo'],
     image_url: 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&w=800&q=80',
     is_active: true,
-    rating_avg: 4.9,
-    rating_count: 28,
+    rating_avg: 0,
+    rating_count: 0,
     created_at: '2026-01-10T10:00:00Z'
   },
   {
@@ -118,8 +118,8 @@ const SEED_SERVICES: Service[] = [
     species_supported: ['Chó', 'Mèo'],
     image_url: 'https://images.unsplash.com/photo-1548767797-d8c844163c4c?auto=format&fit=crop&w=800&q=80',
     is_active: true,
-    rating_avg: 5.0,
-    rating_count: 36,
+    rating_avg: 0,
+    rating_count: 0,
     created_at: '2026-01-11T10:00:00Z'
   },
   {
@@ -133,8 +133,8 @@ const SEED_SERVICES: Service[] = [
     species_supported: ['Chó', 'Mèo', 'Khác'],
     image_url: 'https://images.unsplash.com/photo-1628009368231-7bb7cfcb0def?auto=format&fit=crop&w=800&q=80',
     is_active: true,
-    rating_avg: 4.8,
-    rating_count: 19,
+    rating_avg: 0,
+    rating_count: 0,
     created_at: '2026-01-12T10:00:00Z'
   },
   {
@@ -148,8 +148,8 @@ const SEED_SERVICES: Service[] = [
     species_supported: ['Chó', 'Mèo'],
     image_url: 'https://images.unsplash.com/photo-1576201836106-db1758fd1c97?auto=format&fit=crop&w=800&q=80',
     is_active: true,
-    rating_avg: 4.9,
-    rating_count: 22,
+    rating_avg: 0,
+    rating_count: 0,
     created_at: '2026-01-14T10:00:00Z'
   },
   {
@@ -163,8 +163,8 @@ const SEED_SERVICES: Service[] = [
     species_supported: ['Chó', 'Mèo'],
     image_url: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=800&q=80',
     is_active: true,
-    rating_avg: 4.8,
-    rating_count: 14,
+    rating_avg: 0,
+    rating_count: 0,
     created_at: '2026-01-15T10:00:00Z'
   }
 ];
@@ -423,29 +423,61 @@ class StoreService {
   }
 
   private loadState(): AppState {
+    let loadedState: AppState;
+
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        return JSON.parse(stored);
+        loadedState = JSON.parse(stored) as AppState;
+      } else {
+        loadedState = {
+          currentUser: SEED_USERS[1], // Default to Customer Minh Anh
+          users: SEED_USERS,
+          categories: SEED_CATEGORIES,
+          services: SEED_SERVICES,
+          pets: SEED_PETS,
+          schedules: SEED_SCHEDULE,
+          bookings: SEED_BOOKINGS,
+          payments: SEED_PAYMENTS,
+          reviews: SEED_REVIEWS,
+          coupons: SEED_COUPONS,
+          petPoints: SEED_PET_POINTS,
+          notifications: SEED_NOTIFICATIONS
+        };
       }
     } catch (e) {
       console.warn('Failed to parse localStorage, resetting to seed:', e);
+      loadedState = {
+        currentUser: SEED_USERS[1],
+        users: SEED_USERS,
+        categories: SEED_CATEGORIES,
+        services: SEED_SERVICES,
+        pets: SEED_PETS,
+        schedules: SEED_SCHEDULE,
+        bookings: SEED_BOOKINGS,
+        payments: SEED_PAYMENTS,
+        reviews: SEED_REVIEWS,
+        coupons: SEED_COUPONS,
+        petPoints: SEED_PET_POINTS,
+        notifications: SEED_NOTIFICATIONS
+      };
     }
 
-    return {
-      currentUser: SEED_USERS[1], // Default to Customer Minh Anh
-      users: SEED_USERS,
-      categories: SEED_CATEGORIES,
-      services: SEED_SERVICES,
-      pets: SEED_PETS,
-      schedules: SEED_SCHEDULE,
-      bookings: SEED_BOOKINGS,
-      payments: SEED_PAYMENTS,
-      reviews: SEED_REVIEWS,
-      coupons: SEED_COUPONS,
-      petPoints: SEED_PET_POINTS,
-      notifications: SEED_NOTIFICATIONS
-    };
+    // A service's rating is derived only from reviews linked to that service.
+    // Recalculate on every load so older localStorage data cannot retain fake/stale totals.
+    loadedState.reviews ??= [];
+    loadedState.services ??= [];
+    for (const service of loadedState.services) {
+      const serviceReviews = loadedState.reviews.filter(
+        (review) => review.service_id === service.id
+      );
+      service.rating_count = serviceReviews.length;
+      service.rating_avg = serviceReviews.length
+        ? Number((serviceReviews.reduce((sum, review) => sum + review.rating, 0) / serviceReviews.length).toFixed(1))
+        : 0;
+    }
+
+    return loadedState;
   }
 
   private saveState() {
@@ -714,7 +746,7 @@ class StoreService {
     const newService: Service = {
       ...serviceData,
       id: `srv-${Date.now()}`,
-      rating_avg: 5.0,
+      rating_avg: 0,
       rating_count: 0,
       created_at: new Date().toISOString()
     };
@@ -1368,14 +1400,8 @@ class StoreService {
     };
     this.state.petPoints.unshift(pointTx);
 
-    // Update service rating stats
-    const service = this.state.services.find((s) => s.id === booking.service_id);
-    if (service) {
-      const allSrvReviews = this.state.reviews.filter((r) => r.service_id === service.id);
-      const totalStars = allSrvReviews.reduce((sum, r) => sum + r.rating, 0);
-      service.rating_count = allSrvReviews.length;
-      service.rating_avg = Number((totalStars / allSrvReviews.length).toFixed(1));
-    }
+    // Keep service rating statistics derived from its own review records only.
+    this.refreshServiceRating(booking.service_id);
 
     this.addNotification({
       user_id: booking.user_id,
