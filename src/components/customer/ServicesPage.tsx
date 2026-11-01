@@ -45,6 +45,15 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({ onSelectServiceToBoo
     return matchesCat && matchesQuery && matchesPrice;
   });
 
+  // The modal's count and average must always come from this service's own review records.
+  const detailServiceReviews = detailModalService
+    ? store.getReviewsByService(detailModalService.id)
+    : [];
+  const detailServiceRatingCount = detailServiceReviews.length;
+  const detailServiceRatingAverage = detailServiceRatingCount
+    ? (detailServiceReviews.reduce((sum, review) => sum + review.rating, 0) / detailServiceRatingCount).toFixed(1)
+    : '0.0';
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       {/* Title & Banner */}
@@ -166,7 +175,7 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({ onSelectServiceToBoo
                 />
                 <div className="absolute top-3 right-3 bg-white/95 px-2.5 py-1 rounded-full text-xs font-black text-[#81451F] flex items-center gap-1 shadow-xs">
                   <Star className="w-3.5 h-3.5 text-[#EDC55B] fill-current" />
-                  <span>{srv.rating_count > 0 ? srv.rating_avg.toFixed(1) : 'Chưa có'}</span>
+                  <span>{srv.rating_avg.toFixed(1)}</span>
                   <span className="text-neutral-400 text-[10px]">({srv.rating_count})</span>
                 </div>
 
@@ -320,16 +329,16 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({ onSelectServiceToBoo
               {/* Service Reviews */}
               <div className="pt-2 border-t border-[#FAF6F0]">
                 <h4 className="font-bold text-sm text-[#81451F] mb-2 flex items-center justify-between">
-                  <span>Đánh giá từ khách hàng ({detailModalService.rating_count})</span>
+                  <span>Đánh giá từ khách hàng ({detailServiceRatingCount})</span>
                   <span className="text-xs font-black text-[#EC802B] flex items-center gap-1">
-                    <Star className="w-3.5 h-3.5 fill-current text-[#EDC55B]" /> {detailModalService.rating_count > 0 ? `${detailModalService.rating_avg} / 5.0` : 'Chưa có đánh giá'}
+                    <Star className="w-3.5 h-3.5 fill-current text-[#EDC55B]" /> {detailServiceRatingAverage} / 5.0
                   </span>
                 </h4>
                 <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {store.getReviewsByService(detailModalService.id).length === 0 ? (
+                  {detailServiceReviews.length === 0 ? (
                     <p className="text-xs text-neutral-400 italic">Chưa có đánh giá nào cho dịch vụ này.</p>
                   ) : (
-                    store.getReviewsByService(detailModalService.id).map((r) => (
+                    detailServiceReviews.map((r) => (
                       <div key={r.id} className="p-3 rounded-xl bg-[#FAF6F0] text-xs space-y-1">
                         <div className="flex justify-between font-bold text-[#81451F]">
                           <span>{r.user_name} ({r.pet_name})</span>
