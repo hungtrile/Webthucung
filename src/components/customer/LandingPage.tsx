@@ -23,6 +23,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const reviews = store.getReviews().slice(0, 3);
   const coupons = store.getCoupons().filter((coupon) => coupon.is_active).slice(0, 2);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const selectedServiceReviews = selectedService
+    ? store.getReviewsByService(selectedService.id)
+    : [];
+  const selectedServiceRatingCount = selectedServiceReviews.length;
+  const selectedServiceRatingAverage = selectedServiceRatingCount
+    ? (selectedServiceReviews.reduce((sum, review) => sum + review.rating, 0) / selectedServiceRatingCount).toFixed(1)
+    : '0.0';
 
   useEffect(() => {
     if (!selectedService) return;
@@ -95,7 +102,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             >
               <div className="pet-service-image-wrap"><img src={service.image_url} alt={service.service_name} loading="lazy" /><span>{index === 0 ? 'Được yêu thích' : service.duration_minutes + ' phút'}</span></div>
               <div className="pet-service-card-body">
-                <div className="pet-service-meta"><span>{service.is_weight_based ? 'Giá theo cân nặng' : 'Giá niêm yết'}</span><span>{service.rating_count > 0 ? <><Star size={13} fill="currentColor" /> {service.rating_avg.toFixed(1)} ({service.rating_count})</> : 'Chưa có đánh giá'}</span></div>
+                <div className="pet-service-meta"><span>{service.is_weight_based ? 'Giá theo cân nặng' : 'Giá niêm yết'}</span><span><Star size={13} fill="currentColor" /> {service.rating_avg.toFixed(1)} ({service.rating_count})</span></div>
                 <h3>{service.service_name}</h3>
                 <p>{service.description}</p>
                 <div className="pet-service-card-footer"><strong>{service.is_weight_based ? 'Từ ' : ''}{formatVND(service.base_price)}</strong><button onClick={(event) => { event.stopPropagation(); onNavigateToBooking(service.id); }} aria-label={`Đặt lịch ${service.service_name}`}><ArrowRight size={18} /></button></div>
@@ -152,8 +159,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 </div>
               ) : null}
               <div className="border-t border-[#F0E2D2] pt-3">
-                <div className="flex items-center justify-between gap-3"><h4 className="font-bold text-sm text-[#81451F]">Đánh giá khách hàng ({selectedService.rating_count})</h4><span className="text-xs text-[#D79A2D]">★ {selectedService.rating_count ? selectedService.rating_avg.toFixed(1) : 'Chưa có đánh giá'}</span></div>
-                <div className="mt-2 space-y-2 max-h-32 overflow-y-auto">{store.getReviewsByService(selectedService.id).length ? store.getReviewsByService(selectedService.id).map((review) => <div key={review.id} className="rounded-xl bg-[#FFFAF4] p-3 text-xs"><strong>{review.user_name} · {review.pet_name}</strong><p className="mt-1 text-[#76583d]">{review.comment}</p></div>) : <p className="text-xs text-[#9b846e]">Dịch vụ chưa có đánh giá.</p>}</div>
+                <div className="flex items-center justify-between gap-3"><h4 className="font-bold text-sm text-[#81451F]">Đánh giá khách hàng ({selectedServiceRatingCount})</h4><span className="text-xs text-[#D79A2D]">★ {selectedServiceRatingAverage} / 5.0</span></div>
+                <div className="mt-2 space-y-2 max-h-32 overflow-y-auto">{selectedServiceReviews.length ? selectedServiceReviews.map((review) => <div key={review.id} className="rounded-xl bg-[#FFFAF4] p-3 text-xs"><strong>{review.user_name} · {review.pet_name}</strong><p className="mt-1 text-[#76583d]">{review.comment}</p></div>) : <p className="text-xs text-[#9b846e]">Dịch vụ chưa có đánh giá.</p>}</div>
               </div>
               <div className="flex justify-end"><button className="pet-button pet-button-primary" onClick={() => { const id = selectedService.id; setSelectedService(null); onNavigateToBooking(id); }}><CalendarDays size={17} /> Đặt lịch dịch vụ này</button></div>
             </div>
